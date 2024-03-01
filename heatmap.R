@@ -10,4 +10,3 @@ heatmap_map <- ComplexHeatmap::pheatmap(choose_matrix,
                                          color = mycolors,
                                          breaks= mybreaks)
 
-heatmap_SCNA
