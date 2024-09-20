@@ -5,34 +5,6 @@
 
 
 
-setwd(NMF_dir)
-mRNA_include<-T
-RNA_SD_percent <- 15
-mRNA_filter <- round(RNA_SD_percent*nrow(RNA_data)/100)
-
-PRO_include<-F
-CNV_include<-F
-
-
-kmax=8
-
-nrun=500
-
-if (mRNA_include!=TRUE){
-  mRNA_count_filter<-"not_included"##
-}else{mRNA_count_filter<-mRNA_filter}
-
-if (PRO_include!=TRUE){
-  pro_count_filter<-"not_included"#
-}else{pro_count_filter<-PRO_filter}
-
-if (CNV_include!=TRUE){
-  CNV_data_filter<-"not_included"#
-}else{CNV_data_filter<-CNV_filter}
-
-
-NMF_taskname <- paste("RNA_",mRNA_count_filter,'_',RNA_SD_percent,'_K8_percent_SD_RNA_NMF',sep ="" )
-
 # NMF for HER2 project
 
 library(MyEasyNMF)
@@ -43,11 +15,6 @@ setwd(NMF_dir)
 
 # Organize data -----------------------------------------------------
 
-
-if(CNV_filter=="peak"){
-  CNA_Tumor <- CBCGA_GISTICpeaks.val  
-}
-
 EXP_Tumor <- RNA_data[, str_detect(colnames(RNA_data), fixed("_T"))]
 colnames(EXP_Tumor) <- substr( colnames(EXP_Tumor), 1, 4)
 
@@ -55,11 +22,8 @@ colnames(EXP_Tumor) <- substr( colnames(EXP_Tumor), 1, 4)
 Tes_Cases <- clinical_data$PatientCode[!is.na(clinical_data$HER2_status) & clinical_data$HER2_status == "HER2_positive"  ]
 
 
-
-if(mRNA_include==T & PRO_include==F & CNV_include==F){
   Tes_Cases <- intersect( Tes_Cases, colnames(EXP_Tumor) ) 
   Tes_EXP  <-  EXP_Tumor[, Tes_Cases]
-}
 
 
 
@@ -94,9 +58,8 @@ save(exp.fpkm.TT.SD,file = paste("RNA",RNA_SD_percent,'_percent_NMF_',mRNA_count
 NMF_taskname <- paste("RNA_",mRNA_count_filter,'_',RNA_SD_percent,'_K8_percent_SD_RNA_NMF',sep ="" )
 
 
-if(mRNA_include==T & PRO_include==F & CNV_include==F){
   tmp = data.frame(V1 = c("RNA"),
-                   V2 = c("exp.fpkm.TT.SD.gct")  )}
+                   V2 = c("exp.fpkm.TT.SD.gct")  )
 
 
 write.table(tmp ,file = './nmf.conf',sep = "\t", row.names = F, col.names =F, quote = F)
