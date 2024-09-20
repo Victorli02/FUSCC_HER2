@@ -1,31 +1,4 @@
 
-rownames(other_cohort_clinical_data) <- other_cohort_clinical_data$Sample.ID
-
-HER2_list_clinical   <- other_cohort_clinical_data[which(other_cohort_clinical_data$HER2_Status == 'positive'),]
-HER2_list   <- rownames(HER2_list_clinical)
-
-other_cohort_HER2_mRNA <- other_cohort_mRNA[,which(colnames(other_cohort_mRNA) %in% HER2_list)]
-
-
-# combat -------------------------------------------------------
-
-PCA_data <- cbind(FUSCC_HER2_RNA,other_cohort_HER2_mRNA)
-pca_group <- matrix(data = NA,ncol = 2,nrow  = ncol(PCA_data))
-pca_group[,1]  <- colnames(PCA_data)
-pca_group[,2]  <- c(rep('FUSCC_HER2',ncol(FUSCC_HER2_RNA)),rep('other_cohort',ncol(other_cohort_HER2_mRNA)))
-colnames(pca_group) <- c('sample','group')
-pca_group <- as.data.frame(pca_group)
-
-library(sva)
-modcombat = model.matrix(~1, data = pca_group)
-batch = pca_group$group
-combat_edata = ComBat(dat=PCA_data, batch=batch, mod=modcombat,   
-                      par.prior=TRUE, prior.plots=TRUE)
-
-FUSCC_HER2_combat_RNA <- combat_edata[differential_genes,1:ncol(FUSCC_HER2_RNA)]
-other_cohort_combat_RNA <- combat_edata[differential_genes,ncol(FUSCC_HER2_RNA)+1:ncol(combat_edata)]
-
-
 # RF -------------------------------------------------------
 
 library(dplyr)
@@ -120,46 +93,3 @@ results_tree_df <- results_tree$values %>%
 results_tree_df$MEDIAN <- apply(results_tree_df, 1, median)  
 results_tree_df$MEAN <- apply(results_tree_df[, 1:10], 1, mean)
 
-# random forest establishment
-gam_train$nmf <- as.factor(gam_train$nmf)
-rf_fit <- randomForest(nmf ~ ., data = gam_train, importance = T, proximity = T, 
-                       mtry = best_mtry, maxnodes = maxnodes, ntree = tree_num)  
-
-plot(rf_fit)
-varImpPlot(rf_fit)
-rf_fit_imp <- varImp(rf_fit)
-mdsplot <- MDSplot(rf_fit, fac = gam_train$nmf)
-
-# random forest validation
-rf_prediction <- predict(rf_fit, gam_test)
-gam_test$nmf <- as.factor(gam_test$nmf)
-rf_pred_cm <- confusionMatrix(rf_prediction, gam_test$nmf)
-rf_pred_cmat <- rf_pred_cm$table %>% 
-  data.frame() %>% 
-  pivot_wider(id_cols = Prediction,
-              names_from = Reference,
-              values_from = Freq) %>% 
-  data.frame() %>% 
-  `rownames<-`(.$Prediction) %>% 
-  select(-1)
-
-rf_pred_cmat2 <- apply(rf_pred_cmat, 1, function(x){x/sum(x)}) %>% t()
-
-pheatmap(rf_pred_cmat2, annotation_legend = F,
-         cluster_rows = F, cluster_cols = F,
-         show_rownames = T, show_colnames = T,
-         legend = T, display_numbers = T, border_color = NA,
-         fontsize_row = 12, fontsize_col = 12, fontsize_number = 12, number_color = 'white',
-         color = rev(colorRampPalette(c('DarkRed', 'white', 'darkblue'))(100)))
-
-
-
-
-# other_cohort HER2 subtype -------------------------------------------------------------------
-
-other_cohort_RNA <- t(other_cohort_RNA)
-other_cohort_RNA <- as.data.frame(other_cohort_RNA)
-other_cohort_RNA <- clean_names(other_cohort_RNA)
-
-other_cohort_RNA_NMF <- predict(rf_fit, other_cohort_RNA)
-other_cohort_RNA_NMF <- as.data.frame(other_cohort_RNA_NMF)
